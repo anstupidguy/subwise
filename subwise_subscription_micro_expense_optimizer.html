@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SubWise - Subscription & Micro-Expense Optimizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f3ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        emerald: {
+                            500: '#10b981',
+                            600: '#059669',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card-hover {
+            transition: all 0.25s ease-in-out;
+        }
+        .glass-card-hover:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-30 glass-card border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+            <!-- App Logo & Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-wallet text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        SubWise
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-medium hidden sm:block">Subscription & Micro-Expense Optimizer</p>
+                </div>
+            </div>
+
+            <!-- Action Controls Buttons -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="openTutorialModal()" class="px-3 py-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs sm:text-sm font-semibold transition flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-indigo-400"></i>
+                    <span class="hidden sm:inline">Tutorial &</span> Demo Data
+                </button>
+                <button onclick="openExpenseModal()" class="px-3 py-2 rounded-lg bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add Expense</span>
+                </button>
+                <div class="relative group">
+                    <button class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm border border-slate-700/60 transition">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-xl py-1 hidden group-hover:block z-40">
+                        <button onclick="exportData()" class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-download text-indigo-400"></i> Export JSON Backup
+                        </button>
+                        <label class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 flex items-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-upload text-emerald-400"></i> Import JSON Data
+                            <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importData(event)">
+                        </label>
+                        <hr class="border-slate-800 my-1">
+                        <button onclick="confirmResetAll()" class="w-full text-left px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> Clear All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 flex-grow">
+
+        <!-- Empty State Welcome Banner (Visible when no data exists) -->
+        <div id="emptyStateContainer" class="glass-card rounded-2xl p-8 text-center border border-indigo-500/20 bg-gradient-to-b from-indigo-950/30 to-slate-900/50 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="max-w-xl mx-auto space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    <i class="fa-solid fa-piggy-bank"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white">Start Optimizing Your Recurring Spend</h2>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Track subscriptions, catch forgotten micro-expenses under $15, and discover how small monthly cuts can turn into thousands in long-term wealth.
+                </p>
+                <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <button onclick="loadSampleData()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm shadow-lg shadow-emerald-500/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Load Demo Data (Try It!)
+                    </button>
+                    <button onclick="openExpenseModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add First Expense
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Dashboard Grid -->
+        <div id="dashboardStatsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Metric Card 1: Active Total Spend -->
+            <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Active Spend</p>
+                        <h3 id="statMonthlySpend" class="text-2xl sm:text-3xl font-extrabold text-white mt-1">$0.00 <span class="text-xs font-normal text-slate-400">/mo</span></h3>
+                        <p id="statYearlySpend" class="text-xs text-indigo-300 font-medium mt-1">$0.00 / year</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-credit-card"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-slate-400">
+                    <span>Active items</span>
+                    <span id="statActiveCount" class="font-bold text-slate-200">0</span>
+                </div>
+            </div>
+
+            <!-- Metric Card 2: Paused/Cancelled Savings -->
+            <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Monthly Savings</p>
+                        <h3 id="statMonthlySaved" class="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-1">$0.00 <span class="text-xs font-normal text-slate-400">/mo</span></h3>
+                        <p id="statYearlySaved" class="text-xs text-emerald-300 font-medium mt-1">$0.00 / year saved</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-slate-400">
+                    <span>Paused / Cut items</span>
+                    <span id="statPausedCount" class="font-bold text-emerald-400">0</span>
+                </div>
+            </div>
+
+            <!-- Metric Card 3: Micro-Expense Leak -->
+            <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Micro-Expense Leaks</p>
+                        <h3 id="statMicroLeak" class="text-2xl sm:text-3xl font-extrabold text-amber-400 mt-1">$0.00 <span class="text-xs font-normal text-slate-400">/mo</span></h3>
+                        <p id="statMicroLeakRatio" class="text-xs text-amber-300 font-medium mt-1">0% of total subscriptions</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-droplet-slash"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-slate-400">
+                    <span>Items ≤ $15/mo</span>
+                    <span id="statMicroCount" class="font-bold text-amber-300">0</span>
+                </div>
+            </div>
+
+            <!-- Metric Card 4: Investment Opportunity Cost -->
+            <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-900">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">5-Yr Invest Opportunity</p>
+                        <h3 id="statOpportunityCost" class="text-2xl sm:text-3xl font-extrabold text-indigo-400 mt-1">$0.00</h3>
+                        <p class="text-xs text-indigo-300 font-medium mt-1">If active spend was invested</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-slate-400">
+                    <span>Compound Horizon</span>
+                    <span class="font-bold text-indigo-300">5 Years</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Compound Interest Growth Simulator -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-seedling text-emerald-400"></i> Investment Opportunity Simulator
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        What if your monthly subscription budget was redirected into an index fund compounding over time?
+                    </p>
+                </div>
+
+                <!-- Rate Slider Control -->
+                <div class="flex items-center space-x-4 bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                    <span class="text-xs font-semibold text-slate-300">Annual Return Rate:</span>
+                    <input type="range" id="rateSlider" min="1" max="15" value="7" step="0.5" 
+                           class="w-28 sm:w-36 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                           oninput="updateInvestmentRate(this.value)">
+                    <span id="rateLabel" class="text-sm font-bold text-brand-400 min-w-[3rem] text-right">7.0%</span>
+                </div>
+            </div>
+
+            <!-- Wealth Projection Cards Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                    <p class="text-xs font-medium text-slate-400">1 Year Value</p>
+                    <p id="proj1Year" class="text-lg font-bold text-slate-200 mt-1">$0</p>
+                    <p id="gain1Year" class="text-[10px] text-emerald-400 font-semibold">+ $0 gain</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                    <p class="text-xs font-medium text-slate-400">5 Years Value</p>
+                    <p id="proj5Year" class="text-lg font-bold text-emerald-400 mt-1">$0</p>
+                    <p id="gain5Year" class="text-[10px] text-emerald-400 font-semibold">+ $0 gain</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                    <p class="text-xs font-medium text-slate-400">10 Years Value</p>
+                    <p id="proj10Year" class="text-lg font-bold text-slate-200 mt-1">$0</p>
+                    <p id="gain10Year" class="text-[10px] text-emerald-400 font-semibold">+ $0 gain</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                    <p class="text-xs font-medium text-slate-400">20 Years Value</p>
+                    <p id="proj20Year" class="text-lg font-bold text-indigo-400 mt-1">$0</p>
+                    <p id="gain20Year" class="text-[10px] text-emerald-400 font-semibold">+ $0 gain</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Analytics Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Category Doughnut Breakdown -->
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-indigo-400"></i> Category Breakdown
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Active Spend</span>
+                </div>
+                <div class="relative w-full h-56 flex items-center justify-center">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <div id="categoryChartLegend" class="mt-4 text-xs text-slate-400 flex flex-wrap justify-center gap-2"></div>
+            </div>
+
+            <!-- Spending vs Investment Growth Chart -->
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 lg:col-span-2 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-emerald-400"></i> Cumulative Spent vs. Investment Growth
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Timeline Comparison (Years)</span>
+                </div>
+                <div class="relative w-full h-64">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smart Audit & Micro-Leak Insights Panel -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-brain text-amber-400"></i> Smart Audit & Subscription Insights
+                </h3>
+                <span class="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">
+                    Automated Analysis
+                </span>
+            </div>
+            <div id="auditInsightsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                <!-- Dynamic cards populated via JavaScript -->
+            </div>
+        </div>
+
+        <!-- Expense List Controls & Main Table -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-brand-400"></i> Managed Expenses
+                    </h3>
+                    <p class="text-xs text-slate-400">Toggle items off to simulate savings without deleting records.</p>
+                </div>
+
+                <!-- Filter Controls Bar -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <!-- Search Input -->
+                    <div class="relative min-w-[160px] flex-grow sm:flex-grow-0">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="searchInput" placeholder="Search expenses..." 
+                               oninput="renderExpenses()"
+                               class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+
+                    <!-- Category Filter -->
+                    <select id="categoryFilter" onchange="renderExpenses()" class="py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+                        <option value="ALL">All Categories</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Fitness">Fitness</option>
+                        <option value="Productivity">Productivity</option>
+                        <option value="Food/Dining">Food/Dining</option>
+                        <option value="Cloud/Tech">Cloud/Tech</option>
+                        <option value="Micro-Habits">Micro-Habits</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Other">Other</option>
+                    </select>
+
+                    <!-- Status Filter -->
+                    <select id="statusFilter" onchange="renderExpenses()" class="py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+                        <option value="ALL">All Statuses</option>
+                        <option value="active">Active Only</option>
+                        <option value="cancelled">Paused / Cut</option>
+                    </select>
+
+                    <!-- Sort Select -->
+                    <select id="sortSelect" onchange="renderExpenses()" class="py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+                        <option value="cost-desc">Cost: High to Low</option>
+                        <option value="cost-asc">Cost: Low to High</option>
+                        <option value="name-asc">Name: A - Z</option>
+                        <option value="renewal-asc">Renewal Date</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Expense Items Table / Responsive Grid -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-950/40">
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-900/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4">Expense / Service</th>
+                            <th class="py-3 px-4">Category</th>
+                            <th class="py-3 px-4 text-right">Monthly Equiv.</th>
+                            <th class="py-3 px-4 text-right">Billing Cycle</th>
+                            <th class="py-3 px-4">Next Renewal</th>
+                            <th class="py-3 px-4 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="divide-y divide-slate-800/60 text-xs">
+                        <!-- Populated dynamically via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 bg-slate-950">
+        <p>SubWise &copy; 2026 - Privacy-first subscription management. All data remains saved locally in your browser.</p>
+    </footer>
+
+    <!-- Add / Edit Expense Modal -->
+    <div id="expenseModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+        <div class="glass-card w-full max-w-lg rounded-2xl p-6 border border-slate-800 shadow-2xl relative space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <h3 id="modalTitle" class="text-base font-bold text-white">Add New Expense</h3>
+                <button onclick="closeExpenseModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="expenseForm" onsubmit="handleSaveExpense(event)" class="space-y-4">
+                <input type="hidden" id="expenseId">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Expense / Subscription Name</label>
+                    <input type="text" id="inputName" required placeholder="e.g., Netflix, Gym, Cloud Storage" 
+                           class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Cost ($)</label>
+                        <input type="number" step="0.01" id="inputCost" required placeholder="14.99" 
+                               class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Billing Cycle</label>
+                        <select id="inputCycle" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-brand-500">
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="quarterly">Quarterly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+                        <select id="inputCategory" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-brand-500">
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Fitness">Fitness</option>
+                            <option value="Productivity">Productivity</option>
+                            <option value="Food/Dining">Food/Dining</option>
+                            <option value="Cloud/Tech">Cloud/Tech</option>
+                            <option value="Micro-Habits">Micro-Habits</option>
+                            <option value="Utilities">Utilities</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Payment Method</label>
+                        <input type="text" id="inputPayment" placeholder="e.g., Visa ****4242, PayPal" 
+                               class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Next Renewal Date</label>
+                        <input type="date" id="inputRenewal" 
+                               class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Initial Status</label>
+                        <select id="inputStatus" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-brand-500">
+                            <option value="active">Active Spending</option>
+                            <option value="cancelled">Paused / Cut (Saved)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Notes / Trial Reminders</label>
+                    <textarea id="inputNotes" rows="2" placeholder="e.g., Free trial ends on 15th, share with roommate" 
+                              class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeExpenseModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-md transition">
+                        Save Subscription
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tutorial & Sample Data Modal -->
+    <div id="tutorialModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+        <div class="glass-card w-full max-w-2xl rounded-2xl p-6 border border-slate-800 shadow-2xl space-y-6 relative">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-indigo-400"></i> How SubWise Optimizes Your Wealth
+                </h3>
+                <button onclick="closeTutorialModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Tutorial Content Steps -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 font-bold flex items-center justify-center text-sm border border-rose-500/20">1</div>
+                    <h4 class="text-xs font-bold text-white">Identify Micro-Leaks</h4>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Small $3-$15 recurring fees (apps, cloud storage, streaming) feel harmless, but combined they drain hundreds annually.
+                    </p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold flex items-center justify-center text-sm border border-emerald-500/20">2</div>
+                    <h4 class="text-xs font-bold text-white">Toggle & Cut</h4>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Flip subscriptions to "Paused/Cut" in SubWise without deleting them. Watch your freed-up cash stack in real time.
+                    </p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div class="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-400 font-bold flex items-center justify-center text-sm border border-brand-500/20">3</div>
+                    <h4 class="text-xs font-bold text-white">Project Growth</h4>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Use the Compound Interest slider to see how cancelling unused trials builds actual 10 & 20-year investment accounts.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Demo Data Action Box -->
+            <div class="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-left">
+                    <h4 class="text-sm font-bold text-indigo-200">Want to see SubWise in Action right now?</h4>
+                    <p class="text-xs text-indigo-300/80">Click below to load realistic sample subscriptions & micro-expenses.</p>
+                </div>
+                <button onclick="loadSampleData(); closeTutorialModal();" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs whitespace-nowrap shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-bolt"></i> Load Sample Data
+                </button>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeTutorialModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+                    Got It! Close Guide
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal (No native confirm alert) -->
+    <div id="confirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+        <div class="glass-card w-full max-w-sm rounded-2xl p-6 border border-slate-800 shadow-2xl text-center space-y-4">
+            <div class="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirmTitle" class="text-base font-bold text-white">Are you sure?</h3>
+            <p id="confirmMessage" class="text-xs text-slate-400">This action cannot be undone.</p>
+            <div class="flex justify-center space-x-3 pt-2">
+                <button onclick="closeConfirmModal(false)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+                    Cancel
+                </button>
+                <button id="confirmActionButton" onclick="closeConfirmModal(true)" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition">
+                    Confirm Action
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <script>
+        // State Management
+        let expenses = [];
+        let annualReturnRate = 0.07; // 7% default
+        let pendingConfirmCallback = null;
+
+        // Category Palette Configuration
+        const CATEGORY_COLORS = {
+            'Entertainment': '#f43f5e',
+            'Fitness': '#10b981',
+            'Productivity': '#6366f1',
+            'Food/Dining': '#f59e0b',
+            'Cloud/Tech': '#06b6d4',
+            'Micro-Habits': '#ec4899',
+            'Utilities': '#8b5cf6',
+            'Other': '#64748b'
+        };
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            initCharts();
+            updateAll();
+        });
+
+        // Save & Load Functions
+        function saveToLocalStorage() {
+            localStorage.setItem('subwise_expenses', JSON.stringify(expenses));
+        }
+
+        function loadFromLocalStorage() {
+            const stored = localStorage.getItem('subwise_expenses');
+            if (stored) {
+                try {
+                    expenses = JSON.parse(stored);
+                } catch (e) {
+                    expenses = [];
+                }
+            } else {
+                expenses = []; // Default clean state
+            }
+        }
+
+        // Sample Realistic Data Set
+        function loadSampleData() {
+            const today = new Date();
+            const formatDate = (daysFromNow) => {
+                const d = new Date();
+                d.setDate(today.getDate() + daysFromNow);
+                return d.toISOString().split('T')[0];
+            };
+
+            expenses = [
+                { id: '1', name: 'Netflix Premium', cost: 22.99, cycle: 'monthly', category: 'Entertainment', payment: 'Visa ****4821', renewal: formatDate(12), status: 'active', notes: '4K Ultra HD Plan' },
+                { id: '2', name: 'Spotify Family', cost: 16.99, cycle: 'monthly', category: 'Entertainment', payment: 'PayPal', renewal: formatDate(5), status: 'active', notes: 'Shared with family' },
+                { id: '3', name: 'iCloud 200GB Storage', cost: 2.99, cycle: 'monthly', category: 'Cloud/Tech', payment: 'Apple Pay', renewal: formatDate(18), status: 'active', notes: 'Micro-leak' },
+                { id: '4', name: 'Equinox Gym', cost: 85.00, cycle: 'monthly', category: 'Fitness', payment: 'MasterCard ****1102', renewal: formatDate(2), status: 'active', notes: 'Consider lower cost local gym' },
+                { id: '5', name: 'ChatGPT Plus', cost: 20.00, cycle: 'monthly', category: 'Productivity', payment: 'Visa ****4821', renewal: formatDate(25), status: 'active', notes: 'AI Work Assistant' },
+                { id: '6', name: 'Duolingo Super', cost: 7.99, cycle: 'monthly', category: 'Productivity', payment: 'Apple Pay', renewal: formatDate(8), status: 'active', notes: 'Language learning micro-fee' },
+                { id: '7', name: 'Gourmet Coffee Club', cost: 14.50, cycle: 'monthly', category: 'Food/Dining', payment: 'Visa ****4821', renewal: formatDate(19), status: 'active', notes: 'Micro coffee subscription' },
+                { id: '8', name: 'Disney+ Bundle', cost: 13.99, cycle: 'monthly', category: 'Entertainment', payment: 'PayPal', renewal: formatDate(3), status: 'cancelled', notes: 'Paused to test savings!' },
+                { id: '9', name: 'Medium Membership', cost: 5.00, cycle: 'monthly', category: 'Productivity', payment: 'Visa ****4821', renewal: formatDate(14), status: 'cancelled', notes: 'Switched to free tier' },
+            ];
+
+            saveToLocalStorage();
+            updateAll();
+            showToast('Sample realistic data loaded successfully!', 'success');
+        }
+
+        // Helper: Convert any billing cycle to Monthly Equivalent
+        function getMonthlyCost(item) {
+            const cost = parseFloat(item.cost) || 0;
+            switch (item.cycle) {
+                case 'weekly': return cost * 4.333;
+                case 'quarterly': return cost / 3;
+                case 'yearly': return cost / 12;
+                case 'monthly':
+                default: return cost;
+            }
+        }
+
+        // Helper: Compound Interest Future Value Calculation
+        function calculateFutureValue(monthlyAmount, rate, years) {
+            if (monthlyAmount <= 0) return 0;
+            const r = rate / 12;
+            const n = years * 12;
+            return monthlyAmount * ((Math.pow(1 + r, n) - 1) / r);
+        }
+
+        // Main State Update Function
+        function updateAll() {
+            // Filter empty state visibility
+            const emptyState = document.getElementById('emptyStateContainer');
+            if (expenses.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // Calculate Metrics
+            let activeMonthly = 0;
+            let pausedMonthly = 0;
+            let activeCount = 0;
+            let pausedCount = 0;
+            let microLeakMonthly = 0;
+            let microLeakCount = 0;
+
+            expenses.forEach(item => {
+                const mCost = getMonthlyCost(item);
+                if (item.status === 'active') {
+                    activeMonthly += mCost;
+                    activeCount++;
+                    if (mCost <= 15.0) {
+                        microLeakMonthly += mCost;
+                        microLeakCount++;
+                    }
+                } else {
+                    pausedMonthly += mCost;
+                    pausedCount++;
+                }
+            });
+
+            // Update UI Cards Text
+            document.getElementById('statMonthlySpend').innerHTML = `$${activeMonthly.toFixed(2)} <span class="text-xs font-normal text-slate-400">/mo</span>`;
+            document.getElementById('statYearlySpend').textContent = `$${(activeMonthly * 12).toFixed(2)} / year`;
+            document.getElementById('statActiveCount').textContent = activeCount;
+
+            document.getElementById('statMonthlySaved').innerHTML = `$${pausedMonthly.toFixed(2)} <span class="text-xs font-normal text-slate-400">/mo</span>`;
+            document.getElementById('statYearlySaved').textContent = `$${(pausedMonthly * 12).toFixed(2)} / year saved`;
+            document.getElementById('statPausedCount').textContent = pausedCount;
+
+            document.getElementById('statMicroLeak').innerHTML = `$${microLeakMonthly.toFixed(2)} <span class="text-xs font-normal text-slate-400">/mo</span>`;
+            const microRatio = activeMonthly > 0 ? ((microLeakMonthly / activeMonthly) * 100).toFixed(0) : 0;
+            document.getElementById('statMicroLeakRatio').textContent = `${microRatio}% of total active subscriptions`;
+            document.getElementById('statMicroCount').textContent = microLeakCount;
+
+            // 5-Year Compound Opportunity Cost metric
+            const opp5Yr = calculateFutureValue(activeMonthly, annualReturnRate, 5);
+            document.getElementById('statOpportunityCost').textContent = `$${Math.round(opp5Yr).toLocaleString()}`;
+
+            // Compound Investment Grid Projections
+            updateProjections(activeMonthly);
+
+            // Render Table, Insights & Charts
+            renderExpenses();
+            renderAuditInsights(activeMonthly, microLeakMonthly, microLeakCount);
+            updateCharts(activeMonthly);
+        }
+
+        // Update Investment Simulator Projections
+        function updateInvestmentRate(val) {
+            annualReturnRate = parseFloat(val) / 100;
+            document.getElementById('rateLabel').textContent = `${parseFloat(val).toFixed(1)}%`;
+            
+            let activeMonthly = 0;
+            expenses.forEach(item => {
+                if (item.status === 'active') activeMonthly += getMonthlyCost(item);
+            });
+            updateProjections(activeMonthly);
+            updateCharts(activeMonthly);
+        }
+
+        function updateProjections(monthly) {
+            const years = [1, 5, 10, 20];
+            years.forEach(y => {
+                const totalInvestedValue = calculateFutureValue(monthly, annualReturnRate, y);
+                const totalOutofPocket = monthly * 12 * y;
+                const gain = totalInvestedValue - totalOutofPocket;
+
+                document.getElementById(`proj${y}Year`).textContent = `$${Math.round(totalInvestedValue).toLocaleString()}`;
+                document.getElementById(`gain${y}Year`).textContent = `+ $${Math.round(gain).toLocaleString()} gain`;
+            });
+        }
+
+        // Smart Audit Insights Rule Engine
+        function renderAuditInsights(activeMonthly, microLeakMonthly, microLeakCount) {
+            const container = document.getElementById('auditInsightsContainer');
+            container.innerHTML = '';
+
+            const activeItems = expenses.filter(e => e.status === 'active');
+
+            // Category Counts
+            const categoryCounts = {};
+            activeItems.forEach(i => {
+                categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1;
+            });
+
+            const insights = [];
+
+            // Insight 1: Entertainment Stacking
+            if (categoryCounts['Entertainment'] >= 2) {
+                insights.push({
+                    type: 'warning',
+                    icon: 'fa-tv',
+                    color: 'text-rose-400',
+                    border: 'border-rose-500/30',
+                    bg: 'bg-rose-950/20',
+                    title: `${categoryCounts['Entertainment']} Active Entertainment Apps`,
+                    message: 'Streaming services stack up quickly. Consider rotating one platform per month instead of keeping all active simultaneously.'
+                });
+            }
+
+            // Insight 2: Micro-expense Leak Alert
+            if (microLeakCount >= 3) {
+                insights.push({
+                    type: 'leak',
+                    icon: 'fa-droplet-slash',
+                    color: 'text-amber-400',
+                    border: 'border-amber-500/30',
+                    bg: 'bg-amber-950/20',
+                    title: `Micro-Leak Alert: ${microLeakCount} Small Apps`,
+                    message: `You have ${microLeakCount} subscriptions under $15 totaling $${microLeakMonthly.toFixed(2)}/mo. These small fees often slip past budget reviews.`
+                });
+            }
+
+            // Insight 3: High Individual Cost Alert
+            const highCostItem = activeItems.find(i => getMonthlyCost(i) >= 50);
+            if (highCostItem) {
+                insights.push({
+                    type: 'cost',
+                    icon: 'fa-circle-exclamation',
+                    color: 'text-indigo-400',
+                    border: 'border-indigo-500/30',
+                    bg: 'bg-indigo-950/20',
+                    title: `High Cost Item: ${highCostItem.name}`,
+                    message: `${highCostItem.name} costs $${getMonthlyCost(highCostItem).toFixed(2)}/mo. Check if you are utilizing this service enough to justify the annual $${(getMonthlyCost(highCostItem)*12).toFixed(2)} spend.`
+                });
+            }
+
+            // Insight 4: Positive Savings Reinforcement
+            const pausedItems = expenses.filter(e => e.status === 'cancelled');
+            if (pausedItems.length > 0) {
+                let savedMo = pausedItems.reduce((acc, curr) => acc + getMonthlyCost(curr), 0);
+                insights.push({
+                    type: 'positive',
+                    icon: 'fa-circle-check',
+                    color: 'text-emerald-400',
+                    border: 'border-emerald-500/30',
+                    bg: 'bg-emerald-950/20',
+                    title: `Optimized Savings Active!`,
+                    message: `You have paused ${pausedItems.length} expenses, saving $${savedMo.toFixed(2)}/mo ($${(savedMo*12).toFixed(2)}/yr). That cash is now protected!`
+                });
+            }
+
+            if (insights.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-4 text-center text-xs text-slate-500 italic">
+                        No critical spending alerts detected! Your subscription stack looks lean and well managed.
+                    </div>
+                `;
+                return;
+            }
+
+            insights.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl ${item.bg} border ${item.border} space-y-1.5`;
+                card.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid ${item.icon} ${item.color} text-sm"></i>
+                        <h4 class="text-xs font-bold text-slate-200">${item.title}</h4>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">${item.message}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Dynamic Chart.js Initialization & Updates
+        let categoryChartInstance = null;
+        let growthChartInstance = null;
+
+        function initCharts() {
+            // Category Chart
+            const ctxCat = document.getElementById('categoryChart').getContext('2d');
+            categoryChartInstance = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 2,
+                        borderColor: '#0f172a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: $${context.raw.toFixed(2)}/mo`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Growth Chart
+            const ctxGrowth = document.getElementById('growthChart').getContext('2d');
+            growthChartInstance = new Chart(ctxGrowth, {
+                type: 'bar',
+                data: {
+                    labels: ['1 Year', '3 Years', '5 Years', '10 Years', '15 Years', '20 Years'],
+                    datasets: [
+                        {
+                            label: 'Cumulative Cash Spent ($)',
+                            data: [0, 0, 0, 0, 0, 0],
+                            backgroundColor: 'rgba(244, 63, 94, 0.4)',
+                            borderColor: '#f43f5e',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Potential Invested Value ($)',
+                            data: [0, 0, 0, 0, 0, 0],
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: '#94a3b8', font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: $${Math.round(context.raw).toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(activeMonthly) {
+            if (!categoryChartInstance || !growthChartInstance) return;
+
+            // Update Doughnut Data
+            const catMap = {};
+            expenses.filter(e => e.status === 'active').forEach(i => {
+                const cat = i.category || 'Other';
+                catMap[cat] = (catMap[cat] || 0) + getMonthlyCost(i);
+            });
+
+            const catLabels = Object.keys(catMap);
+            const catData = Object.values(catMap);
+            const catColors = catLabels.map(c => CATEGORY_COLORS[c] || CATEGORY_COLORS['Other']);
+
+            categoryChartInstance.data.labels = catLabels;
+            categoryChartInstance.data.datasets[0].data = catData;
+            categoryChartInstance.data.datasets[0].backgroundColor = catColors;
+            categoryChartInstance.update();
+
+            // Render Custom Doughnut Legend
+            const legendBox = document.getElementById('categoryChartLegend');
+            legendBox.innerHTML = '';
+            if (catLabels.length === 0) {
+                legendBox.innerHTML = '<span class="text-slate-500 italic">No active expenses</span>';
+            } else {
+                catLabels.forEach((label, idx) => {
+                    const color = catColors[idx];
+                    const val = catData[idx];
+                    legendBox.innerHTML += `
+                        <div class="flex items-center space-x-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800">
+                            <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${color}"></span>
+                            <span class="text-slate-300 font-medium">${label}:</span>
+                            <span class="text-white font-bold">$${val.toFixed(0)}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // Update Bar Growth Data
+            const horizonYears = [1, 3, 5, 10, 15, 20];
+            const spentData = horizonYears.map(y => activeMonthly * 12 * y);
+            const investData = horizonYears.map(y => calculateFutureValue(activeMonthly, annualReturnRate, y));
+
+            growthChartInstance.data.datasets[0].data = spentData;
+            growthChartInstance.data.datasets[1].data = investData;
+            growthChartInstance.update();
+        }
+
+        // Render Expense Table Rows
+        function renderExpenses() {
+            const tbody = document.getElementById('expenseTableBody');
+            tbody.innerHTML = '';
+
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortVal = document.getElementById('sortSelect').value;
+
+            // Filter
+            let filtered = expenses.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery) || 
+                                      (item.notes && item.notes.toLowerCase().includes(searchQuery));
+                const matchesCategory = categoryFilter === 'ALL' || item.category === categoryFilter;
+                const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+
+            // Sort
+            filtered.sort((a, b) => {
+                if (sortVal === 'cost-desc') return getMonthlyCost(b) - getMonthlyCost(a);
+                if (sortVal === 'cost-asc') return getMonthlyCost(a) - getMonthlyCost(b);
+                if (sortVal === 'name-asc') return a.name.localeCompare(b.name);
+                if (sortVal === 'renewal-asc') return new Date(a.renewal || '2099-01-01') - new Date(b.renewal || '2099-01-01');
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-500 italic">
+                            No matching subscriptions found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const mCost = getMonthlyCost(item);
+                const isActive = item.status === 'active';
+                const isMicro = mCost <= 15.0;
+
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-900/60 transition ${!isActive ? 'opacity-50 line-through bg-slate-950/40' : ''}`;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4">
+                        <button onclick="toggleExpenseStatus('${item.id}')" title="Click to toggle Active/Paused" class="relative inline-flex items-center cursor-pointer focus:outline-none">
+                            <div class="w-9 h-5 rounded-full transition-colors ${isActive ? 'bg-brand-600' : 'bg-slate-700'}"></div>
+                            <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${isActive ? 'translate-x-4' : 'translate-x-0'}"></div>
+                        </button>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="font-bold text-white flex items-center gap-2">
+                            <span>${escapeHtml(item.name)}</span>
+                            ${isMicro && isActive ? '<span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">MICRO</span>' : ''}
+                        </div>
+                        <div class="text-[10px] text-slate-400">${escapeHtml(item.payment || 'Direct Payment')} ${item.notes ? `• ${escapeHtml(item.notes)}` : ''}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border" style="background-color: ${CATEGORY_COLORS[item.category]}15; color: ${CATEGORY_COLORS[item.category]}; border-color: ${CATEGORY_COLORS[item.category]}30">
+                            ${item.category}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold text-slate-200">
+                        $${mCost.toFixed(2)}
+                    </td>
+                    <td class="py-3 px-4 text-right capitalize text-slate-400">
+                        $${parseFloat(item.cost).toFixed(2)} / ${item.cycle}
+                    </td>
+                    <td class="py-3 px-4 text-slate-400">
+                        ${item.renewal ? item.renewal : 'N/A'}
+                    </td>
+                    <td class="py-3 px-4 text-center space-x-2">
+                        <button onclick="openExpenseModal('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="confirmDeleteExpense('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-rose-400 hover:text-rose-200 transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Toggle Status Handler
+        function toggleExpenseStatus(id) {
+            const item = expenses.find(e => e.id === id);
+            if (item) {
+                item.status = item.status === 'active' ? 'cancelled' : 'active';
+                saveToLocalStorage();
+                updateAll();
+                showToast(`Subscription "${item.name}" set to ${item.status === 'active' ? 'Active' : 'Paused'}.`, 'info');
+            }
+        }
+
+        // Modal & Form Handlers
+        function openExpenseModal(id = null) {
+            const modal = document.getElementById('expenseModal');
+            const form = document.getElementById('expenseForm');
+            form.reset();
+
+            if (id) {
+                const item = expenses.find(e => e.id === id);
+                if (item) {
+                    document.getElementById('modalTitle').textContent = 'Edit Subscription';
+                    document.getElementById('expenseId').value = item.id;
+                    document.getElementById('inputName').value = item.name;
+                    document.getElementById('inputCost').value = item.cost;
+                    document.getElementById('inputCycle').value = item.cycle;
+                    document.getElementById('inputCategory').value = item.category;
+                    document.getElementById('inputPayment').value = item.payment || '';
+                    document.getElementById('inputRenewal').value = item.renewal || '';
+                    document.getElementById('inputStatus').value = item.status;
+                    document.getElementById('inputNotes').value = item.notes || '';
+                }
+            } else {
+                document.getElementById('modalTitle').textContent = 'Add New Subscription';
+                document.getElementById('expenseId').value = '';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeExpenseModal() {
+            document.getElementById('expenseModal').classList.add('hidden');
+        }
+
+        function handleSaveExpense(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('expenseId').value;
+            const name = document.getElementById('inputName').value.trim();
+            const cost = parseFloat(document.getElementById('inputCost').value) || 0;
+            const cycle = document.getElementById('inputCycle').value;
+            const category = document.getElementById('inputCategory').value;
+            const payment = document.getElementById('inputPayment').value.trim();
+            const renewal = document.getElementById('inputRenewal').value;
+            const status = document.getElementById('inputStatus').value;
+            const notes = document.getElementById('inputNotes').value.trim();
+
+            if (id) {
+                // Update Existing
+                const index = expenses.findIndex(e => e.id === id);
+                if (index !== -1) {
+                    expenses[index] = { id, name, cost, cycle, category, payment, renewal, status, notes };
+                    showToast('Subscription updated!', 'success');
+                }
+            } else {
+                // Add New
+                const newItem = {
+                    id: Date.now().toString(),
+                    name, cost, cycle, category, payment, renewal, status, notes
+                };
+                expenses.push(newItem);
+                showToast('New subscription added!', 'success');
+            }
+
+            saveToLocalStorage();
+            updateAll();
+            closeExpenseModal();
+        }
+
+        // Delete & Confirm Dialog Handlers
+        function confirmDeleteExpense(id) {
+            const item = expenses.find(e => e.id === id);
+            if (!item) return;
+
+            document.getElementById('confirmTitle').textContent = 'Delete Subscription?';
+            document.getElementById('confirmMessage').textContent = `Are you sure you want to delete "${item.name}"?`;
+            
+            pendingConfirmCallback = () => {
+                expenses = expenses.filter(e => e.id !== id);
+                saveToLocalStorage();
+                updateAll();
+                showToast('Subscription removed.', 'info');
+            };
+
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function confirmResetAll() {
+            document.getElementById('confirmTitle').textContent = 'Clear All Data?';
+            document.getElementById('confirmMessage').textContent = 'This will remove all recorded subscriptions and reset SubWise to a fresh state.';
+            
+            pendingConfirmCallback = () => {
+                expenses = [];
+                saveToLocalStorage();
+                updateAll();
+                showToast('All subscription data cleared.', 'info');
+            };
+
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal(confirmed) {
+            document.getElementById('confirmModal').classList.add('hidden');
+            if (confirmed && typeof pendingConfirmCallback === 'function') {
+                pendingConfirmCallback();
+            }
+            pendingConfirmCallback = null;
+        }
+
+        // Tutorial Modal Handlers
+        function openTutorialModal() {
+            document.getElementById('tutorialModal').classList.remove('hidden');
+        }
+
+        function closeTutorialModal() {
+            document.getElementById('tutorialModal').classList.add('hidden');
+        }
+
+        // JSON Import & Export Utilities
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(expenses, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `SubWise_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Export file downloaded!', 'success');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        expenses = imported;
+                        saveToLocalStorage();
+                        updateAll();
+                        showToast('Backup imported successfully!', 'success');
+                    } else {
+                        showToast('Invalid JSON file format.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Failed to parse JSON file.', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // Toast Helper
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bg = 'bg-slate-900 border-slate-700 text-slate-200';
+            let icon = 'fa-circle-info text-brand-400';
+
+            if (type === 'success') {
+                bg = 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200';
+                icon = 'fa-circle-check text-emerald-400';
+            } else if (type === 'error') {
+                bg = 'bg-rose-950/90 border-rose-500/40 text-rose-200';
+                icon = 'fa-circle-xmark text-rose-400';
+            }
+
+            toast.className = `p-3 px-4 rounded-xl border ${bg} shadow-xl flex items-center space-x-2 text-xs font-medium backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHtml(message)}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition', 'duration-300');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Security Utility to Escape HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+    </script>
+</body>
+</html>
